@@ -10,6 +10,7 @@ import numpy as np
 
 from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+# az mnist adatokat importálom, az itt lévő nullásokkal és nyolcasokkal dolgozom
 
 def X_index(pixels,sorvaltas,oszlopvaltas,size):
     X = []
@@ -23,12 +24,15 @@ def X_index(pixels,sorvaltas,oszlopvaltas,size):
     X = [int(x) for x in X]
     X = np.array(X)
     return X
-
+# 1 dimenzióban dolgozom, viszont elképzelek egy 28*28-as mátrixot, melynek a közepére x-et akarok rajzolni
+# megkeresem a mátrix "közepét" majd innen lépeget jobbra-balra, fel-le (sorvaltas, oszlopvaltas)
+# a függvény egy futásra az x egyik szárát rajzolja meg
 
 def correct_index (labels_value, goodvalue):
     indices = np.isin(labels_value, goodvalue)
     goodindexes = np.array(np.concatenate(np.where(indices)))
     return goodindexes
+# megkeresi a labels_value-ban azokat az indexeket, ahol az indexhez tartozó érték = a goodvalue-val
 
 def toocomplicated (pred, correct):
     count = 0
@@ -37,6 +41,8 @@ def toocomplicated (pred, correct):
             if q == w:
                 count = count +1
     return count
+# két indexértékekkel teli vektort kap be és ha a másodikban van olyan mint az elsőben, a count-hoz hozzáadodik 1
+# probáltam könnyebben megoldani valami np.array-eket hasonlító függvénnyel, de nem találtam ideálisat
                 
 def evaluation (pred_eight, pred_zero, correct_eight, correct_zero):
     TP= toocomplicated(pred_eight, correct_eight)
@@ -48,24 +54,25 @@ def evaluation (pred_eight, pred_zero, correct_eight, correct_zero):
     f1_score = 2*TP/(2*TP+FP+FN)
     
     return accuracy, f1_score, TP, TN, FN, FP
-    
-    
+# meghívja a toocomplicated függvényt különböző bemenetekre, és így megszámolom a "true positive", "true negative", "false negative", "false positive" értékeket 
+# accuracyt és f1_score-t számolok (wikipédia segítségével)
     
 labels = np.array(mnist.test.labels)
-labels_value = np.array(np.argmax(mnist.test.labels, 1))
+labels_value = np.array(np.argmax(mnist.test.labels, 1)) # labels_value (1,1000) a vektor helyett az igazi 0-9 értékkel
 
 
 goodvalues = [0, 8]
 indices = np.isin(labels_value, goodvalues)
 goodindexes = np.array(np.concatenate((np.where(indices))))
+# hasonló mint a correct_index függvény, csak itt az mnist adatok alapján keresem közülük a nullást és nyolcast ábrázoló képek indexét
 
 test_images = np.array(mnist.test.images)
 test_labels = np.array(mnist.test.labels)
 
-zero_eight_images = np.take(test_images, goodindexes, axis=0)
+zero_eight_images = np.take(test_images, goodindexes, axis=0) 
 zero_eight_labels = np.take(test_labels, goodindexes, axis=0)
 zero_eight_labels = np.array(np.argmax(zero_eight_labels, 1))
-
+# az np.take függvénnyel a goodindexben levő értékek szerint kiválasztom azokat az indexű elemeket a test_images/test_labels -ből
 
 pixels = 28
 size = 6
@@ -77,8 +84,10 @@ for q in sorvaltas:
     for w in oszlopvaltas:
         X_index_list.append(X_index(pixels,q,w,size))
 
+# megrajzolja az X négy szárát
+
 X_index_list = np.array(X_index_list)
-X_index_list = np.concatenate(X_index_list)
+X_index_list = np.concatenate(X_index_list) # az X_index_list egy lista, amelyben 4 másik lista van, ezt "egyenesítem ki"
 
 
 W=[]
@@ -87,10 +96,11 @@ for x in range(0,pixels*pixels):
         W.append(5)
     else:
         W.append(0)
-    
+# a weight feltöltése az X_index_list alapján    
+
 
 values = np.dot(zero_eight_images, W)
-
+# összeszorzom a 10000 képvektort a weight vektorral, a values egy 10000-es oszlopvektor, minden sorban egy skalár
 
 index_eight = correct_index(zero_eight_labels, 8)
 index_zero = correct_index(zero_eight_labels, 0)
@@ -99,7 +109,7 @@ index_zero = correct_index(zero_eight_labels, 0)
 treshold = 100
 eight_pred = np.squeeze(np.array(np.where(values > treshold)))
 zero_pred = np.squeeze(np.array(np.where(values < treshold)))
-
+# ahol a values-ban levő skalár nagyobb a treshold-nál 8as lesz a becslés, ha kisebb 0ás
 
 ACC, F1, TP, TN, FN, FP = evaluation(eight_pred, zero_pred, index_eight, index_zero)
 print("Accuracy: ", ACC)
